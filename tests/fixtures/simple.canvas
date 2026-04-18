@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    {
+      "id": "node1",
+      "x": 0, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "color": "4",
+      "text": "椭圆曲线加法的几何意义？\n---\n两点连线交曲线第三点，关于x轴对称"
+    },
+    {
+      "id": "node2",
+      "x": 300, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "text": "骨架节点，不导出"
+    }
+  ],
+  "edges": []
+}

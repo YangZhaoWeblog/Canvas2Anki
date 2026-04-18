@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    {
+      "id": "node1",
+      "x": 0, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "color": "4",
+      "text": "绿色但没有分隔符"
+    }
+  ],
+  "edges": []
+}
