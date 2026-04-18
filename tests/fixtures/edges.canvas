@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "id": "card1",
+      "x": 0, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "color": "4",
+      "text": "数字证书是什么？\n---\n由CA签发的电子文件"
+    },
+    {
+      "id": "img1",
+      "x": 300, "y": 50, "width": 200, "height": 100,
+      "type": "file",
+      "file": "附件/cert_what.png"
+    },
+    {
+      "id": "extra_text",
+      "x": 300, "y": 200, "width": 200, "height": 100,
+      "type": "text",
+      "text": "绑定：身份+公钥+CA签名"
+    }
+  ],
+  "edges": [
+    {"id": "e1", "fromNode": "card1", "fromSide": "right", "toNode": "img1", "toSide": "left"},
+    {"id": "e2", "fromNode": "card1", "fromSide": "right", "toNode": "extra_text", "toSide": "left"}
+  ]
+}

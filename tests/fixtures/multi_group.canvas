@@ -1,0 +1,38 @@
+{
+  "nodes": [
+    {
+      "id": "group1",
+      "x": -100, "y": -100, "width": 500, "height": 400,
+      "type": "group",
+      "label": "ALL::中间难度::密码学"
+    },
+    {
+      "id": "card1",
+      "x": 0, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "color": "4",
+      "text": "ECDSA签名流程？\n---\n私钥签hash"
+    },
+    {
+      "id": "group2",
+      "x": 600, "y": -100, "width": 500, "height": 400,
+      "type": "group",
+      "label": "ALL::中间难度::PKI"
+    },
+    {
+      "id": "card2",
+      "x": 700, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "color": "4",
+      "text": "证书链怎么验证？\n---\n从叶子到根逐级验签"
+    },
+    {
+      "id": "card3",
+      "x": 1200, "y": 0, "width": 200, "height": 100,
+      "type": "text",
+      "color": "4",
+      "text": "孤立卡片？\n---\n不在任何group里"
+    }
+  ],
+  "edges": []
+}
