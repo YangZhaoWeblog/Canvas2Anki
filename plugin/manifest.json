@@ -1,0 +1,9 @@
+{
+  "id": "canvas2anki",
+  "name": "Canvas2Anki",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Export Canvas cards to Anki via AnkiConnect",
+  "author": "yangzhao",
+  "isDesktopOnly": true
+}

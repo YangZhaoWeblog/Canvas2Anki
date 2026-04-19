@@ -6,3 +6,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+
+# plugin
+plugin/node_modules/
+plugin/main.js
