@@ -48,16 +48,16 @@ def test_wikilink_to_obsidian_uri():
     assert "数字证书" in html
 
 
-def test_highlight_to_cloze():
+def test_highlight_to_mark():
     html = md_to_anki_html("这是 ==重要内容== 结尾")
-    assert "{{c1::重要内容}}" in html
+    assert "<mark>重要内容</mark>" in html
     assert "==" not in html
 
 
-def test_multiple_clozes_numbered():
+def test_multiple_highlights():
     html = md_to_anki_html("==第一个== 和 ==第二个==")
-    assert "{{c1::第一个}}" in html
-    assert "{{c2::第二个}}" in html
+    assert "<mark>第一个</mark>" in html
+    assert "<mark>第二个</mark>" in html
 
 
 def test_table():

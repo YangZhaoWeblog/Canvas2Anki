@@ -48,15 +48,11 @@ def md_to_anki_html(text: str, vault: str = "MyDigitalGarden") -> str:
 
     text = re.sub(r"`([^`]+)`", replace_inline_code, text)
 
-    # 5. 转换填空 ==text== → {{cN::text}}
-    cloze_counter = 0
+    # 5. 转换高亮 ==text== → <mark>text</mark>（问答题模板不支持 cloze）
+    def replace_highlight(m: re.Match) -> str:
+        return protect(f"<mark>{m.group(1)}</mark>")
 
-    def replace_cloze(m: re.Match) -> str:
-        nonlocal cloze_counter
-        cloze_counter += 1
-        return f"{{{{c{cloze_counter}::{m.group(1)}}}}}"
-
-    text = re.sub(r"==(.*?)==", replace_cloze, text)
+    text = re.sub(r"==(.*?)==", replace_highlight, text)
 
     # 6. 转换图片 wikilink：![[路径/图片.png]] → <img src="图片.png">（保护，防转义）
     def replace_image(m: re.Match) -> str:
