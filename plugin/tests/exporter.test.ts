@@ -3,146 +3,138 @@ import { exportCanvas } from "../src/exporter";
 import type { PluginSettings } from "../src/models";
 
 const SETTINGS: PluginSettings = {
-  colorR: 64,
-  colorG: 196,
-  colorB: 104,
-  modelName: "问答题",
-  frontField: "正面",
-  backField: "背面",
+  exportColor: "4",
+  deleteKeyword: "DELETE",
 };
 
 function makeCanvas(nodes: any[], edges: any[] = []) {
   return JSON.stringify({ nodes, edges });
 }
 
+function makeMockClient() {
+  return {
+    version: vi.fn(),
+    createDeck: vi.fn(),
+    addNote: vi.fn().mockResolvedValue(99999),
+    updateNoteFields: vi.fn(),
+    deleteNotes: vi.fn(),
+    storeMediaFile: vi.fn(),
+  };
+}
+
+function makeParams(json: string, client: any) {
+  return {
+    canvasJson: json,
+    client: client as any,
+    settings: SETTINGS,
+    vaultName: "TestVault",
+    canvasPath: "test.canvas",
+    readBinary: async () => null as ArrayBuffer | null,
+    findFile: () => null as string | null,
+  };
+}
+
 describe("exportCanvas", () => {
   it("returns stats for new card", async () => {
     const json = makeCanvas([
       {
-        id: "n1", type: "text", color: "#40c468",
+        id: "n1", type: "text", color: "4",
         text: "Q?\n---\nA", x: 0, y: 0, width: 100, height: 50,
       },
     ]);
-
-    const mockClient = {
-      version: vi.fn(),
-      createDeck: vi.fn(),
-      addNote: vi.fn().mockResolvedValue(99999),
-      updateNoteFields: vi.fn(),
-      deleteNotes: vi.fn(),
-      storeMediaFile: vi.fn(),
-    };
-
-    const result = await exportCanvas({
-      canvasJson: json,
-      client: mockClient as any,
-      settings: SETTINGS,
-      vaultName: "TestVault",
-      canvasPath: "test.canvas",
-      readBinary: async () => null,
-      findFile: () => null,
-    });
+    const client = makeMockClient();
+    const result = await exportCanvas(makeParams(json, client));
 
     expect(result.stats.added).toBe(1);
     expect(result.stats.updated).toBe(0);
     expect(result.idWriteback).toHaveProperty("n1", 99999);
-    expect(mockClient.addNote).toHaveBeenCalledOnce();
+    expect(client.addNote).toHaveBeenCalledOnce();
   });
 
   it("updates existing card with ankiId", async () => {
     const json = makeCanvas([
       {
-        id: "n1", type: "text", color: "#40c468",
+        id: "n1", type: "text", color: "4",
         text: 'Q?\n---\nA\n<!--card:{"id":12345}-->',
         x: 0, y: 0, width: 100, height: 50,
       },
     ]);
-
-    const mockClient = {
-      version: vi.fn(),
-      createDeck: vi.fn(),
-      addNote: vi.fn(),
-      updateNoteFields: vi.fn(),
-      deleteNotes: vi.fn(),
-      storeMediaFile: vi.fn(),
-    };
-
-    const result = await exportCanvas({
-      canvasJson: json,
-      client: mockClient as any,
-      settings: SETTINGS,
-      vaultName: "TestVault",
-      canvasPath: "test.canvas",
-      readBinary: async () => null,
-      findFile: () => null,
-    });
+    const client = makeMockClient();
+    const result = await exportCanvas(makeParams(json, client));
 
     expect(result.stats.updated).toBe(1);
-    expect(mockClient.updateNoteFields).toHaveBeenCalledOnce();
-    expect(mockClient.addNote).not.toHaveBeenCalled();
+    expect(client.updateNoteFields).toHaveBeenCalledOnce();
+    expect(client.addNote).not.toHaveBeenCalled();
   });
 
   it("handles addNote failure gracefully", async () => {
     const json = makeCanvas([
       {
-        id: "n1", type: "text", color: "#40c468",
+        id: "n1", type: "text", color: "4",
         text: "Q?\n---\nA", x: 0, y: 0, width: 100, height: 50,
       },
     ]);
-
-    const mockClient = {
-      version: vi.fn(),
-      createDeck: vi.fn(),
-      addNote: vi.fn().mockRejectedValue(new Error("duplicate")),
-      updateNoteFields: vi.fn(),
-      deleteNotes: vi.fn(),
-      storeMediaFile: vi.fn(),
-    };
-
-    const result = await exportCanvas({
-      canvasJson: json,
-      client: mockClient as any,
-      settings: SETTINGS,
-      vaultName: "TestVault",
-      canvasPath: "test.canvas",
-      readBinary: async () => null,
-      findFile: () => null,
-    });
+    const client = makeMockClient();
+    client.addNote.mockRejectedValue(new Error("duplicate"));
+    const result = await exportCanvas(makeParams(json, client));
 
     expect(result.stats.skipped).toBe(1);
     expect(result.idWriteback).not.toHaveProperty("n1");
   });
 
-  it("processes deletion candidates", async () => {
+  it("deletes card with matching color + ankiId + DELETE keyword", async () => {
     const json = makeCanvas([
       {
-        id: "n1", type: "text",
-        text: 'old\n---\nstuff\n<!--card:{"id":77777}-->',
+        id: "n1", type: "text", color: "4",
+        text: 'DELETE\nQ?\n---\nA\n<!--card:{"id":77777}-->',
         x: 0, y: 0, width: 100, height: 50,
       },
     ]);
-
-    const mockClient = {
-      version: vi.fn(),
-      createDeck: vi.fn(),
-      addNote: vi.fn(),
-      updateNoteFields: vi.fn(),
-      deleteNotes: vi.fn(),
-      storeMediaFile: vi.fn(),
-    };
-
-    const result = await exportCanvas({
-      canvasJson: json,
-      client: mockClient as any,
-      settings: SETTINGS,
-      vaultName: "TestVault",
-      canvasPath: "test.canvas",
-      readBinary: async () => null,
-      findFile: () => null,
-    });
+    const client = makeMockClient();
+    const result = await exportCanvas(makeParams(json, client));
 
     expect(result.stats.deleted).toBe(1);
-    expect(mockClient.deleteNotes).toHaveBeenCalledWith([77777]);
+    expect(client.deleteNotes).toHaveBeenCalledWith([77777]);
     expect(result.deletedNodeIds).toContain("n1");
+  });
+
+  it("does NOT delete non-matching color node even with ankiId", async () => {
+    const json = makeCanvas([
+      {
+        id: "n1", type: "text",
+        text: 'Q?\n---\nA\n<!--card:{"id":88888}-->',
+        x: 0, y: 0, width: 100, height: 50,
+      },
+    ]);
+    const client = makeMockClient();
+    const result = await exportCanvas(makeParams(json, client));
+
+    expect(result.stats.deleted).toBe(0);
+    expect(client.deleteNotes).not.toHaveBeenCalled();
+  });
+
+  it("handles deleteNotes failure gracefully, continues to next", async () => {
+    const json = makeCanvas([
+      {
+        id: "n1", type: "text", color: "4",
+        text: 'DELETE\nQ1?\n---\nA1\n<!--card:{"id":11111}-->',
+        x: 0, y: 0, width: 100, height: 50,
+      },
+      {
+        id: "n2", type: "text", color: "4",
+        text: 'DELETE\nQ2?\n---\nA2\n<!--card:{"id":22222}-->',
+        x: 0, y: 100, width: 100, height: 50,
+      },
+    ]);
+    const client = makeMockClient();
+    client.deleteNotes
+      .mockRejectedValueOnce(new Error("not found"))
+      .mockResolvedValueOnce(undefined);
+    const result = await exportCanvas(makeParams(json, client));
+
+    expect(result.stats.deleted).toBe(1);
+    expect(result.stats.skipped).toBe(1);
+    expect(client.deleteNotes).toHaveBeenCalledTimes(2);
+    expect(result.deletedNodeIds).toHaveLength(1);
   });
 });

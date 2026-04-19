@@ -4,6 +4,10 @@ export const DEFAULT_DECK = "Default";
 export const CARD_META_RE = /<!--card:(.*?)-->/;
 export const CARD_META_GLOBAL_RE = /<!--card:.*?-->/g;
 
+export const MODEL_NAME = "问答题";
+export const FRONT_FIELD = "正面";
+export const BACK_FIELD = "背面";
+
 export interface Card {
   nodeId: string;
   front: string;
@@ -21,10 +25,6 @@ export interface ExportStats {
 }
 
 export interface PluginSettings {
-  colorR: number;
-  colorG: number;
-  colorB: number;
-  modelName: string;
-  frontField: string;
-  backField: string;
+  exportColor: string;   // "1"-"6", Canvas preset color index
+  deleteKeyword: string; // text containing this keyword triggers Anki deletion
 }

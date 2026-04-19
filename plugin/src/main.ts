@@ -5,17 +5,13 @@ import { CARD_META_GLOBAL_RE } from "./models";
 import type { PluginSettings } from "./models";
 import { Canvas2AnkiSettingTab, isConfigured } from "./settings";
 
-const EMPTY_SETTINGS: PluginSettings = {
-  colorR: 0,
-  colorG: 0,
-  colorB: 0,
-  modelName: "",
-  frontField: "",
-  backField: "",
+const DEFAULT_SETTINGS: PluginSettings = {
+  exportColor: "4",
+  deleteKeyword: "DELETE",
 };
 
 export default class Canvas2AnkiPlugin extends Plugin {
-  settings: PluginSettings = { ...EMPTY_SETTINGS };
+  settings: PluginSettings = { ...DEFAULT_SETTINGS };
 
   async onload() {
     await this.loadSettings();
@@ -33,7 +29,7 @@ export default class Canvas2AnkiPlugin extends Plugin {
 
   async loadSettings() {
     const data = await this.loadData();
-    this.settings = Object.assign({}, EMPTY_SETTINGS, data ?? {});
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
   }
 
   async saveSettings() {
@@ -42,7 +38,7 @@ export default class Canvas2AnkiPlugin extends Plugin {
 
   private async runExport() {
     if (!isConfigured(this.settings)) {
-      new Notice("请先在设置中配置 Canvas2Anki（颜色、模板名、字段名）");
+      new Notice("请先在设置中配置 Canvas2Anki 导出颜色");
       (this.app as any).setting?.open?.();
       (this.app as any).setting?.openTabById?.(this.manifest.id);
       return;
@@ -122,7 +118,11 @@ export default class Canvas2AnkiPlugin extends Plugin {
         node.text = text + `\n<!--card:${meta}-->`;
       }
       if (deletedNodeIds.includes(node.id)) {
-        node.text = (node.text ?? "").replace(CARD_META_GLOBAL_RE, "").trimEnd();
+        let text = (node.text ?? "").replace(CARD_META_GLOBAL_RE, "");
+        // Strip the delete keyword
+        const kw = this.settings.deleteKeyword;
+        if (kw) text = text.replace(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "");
+        node.text = text.replace(/\n{3,}/g, "\n\n").trim();
       }
     }
 

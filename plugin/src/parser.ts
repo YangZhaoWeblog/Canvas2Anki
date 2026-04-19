@@ -123,12 +123,11 @@ export function findDeck(
 
 // ── main export ────────────────────────────────────────────────────────────
 
-export function parseCanvas(json: string, exportColor: string): ParseResult {
+export function parseCanvas(json: string, exportColor: string, deleteKeyword: string): ParseResult {
   const data: CanvasData = JSON.parse(json);
   const nodes: RawNode[] = data.nodes ?? [];
   const edges: RawEdge[] = data.edges ?? [];
 
-  const colorLower = exportColor.toLowerCase();
   const cards: Card[] = [];
   const warnings: string[] = [];
   const deletions: Card[] = [];
@@ -149,24 +148,25 @@ export function parseCanvas(json: string, exportColor: string): ParseResult {
 
     const rawText = node.text;
     const ankiId = extractMeta(rawText);
-    const isGreen = node.color?.toLowerCase() === colorLower;
+    const isMatch = node.color === exportColor;
 
-    // Deletion candidates: non-green nodes that have an existing anki ID
-    if (!isGreen) {
-      if (ankiId !== null) {
-        deletions.push({
-          nodeId: node.id,
-          front: "",
-          back: "",
-          deck: DEFAULT_DECK,
-          tags: [],
-          ankiId,
-        });
-      }
+    // Non-matching color: always skip, never delete
+    if (!isMatch) continue;
+
+    // Deletion: matching color + has ankiId + text contains delete keyword
+    if (ankiId !== null && deleteKeyword && stripMeta(rawText).includes(deleteKeyword)) {
+      deletions.push({
+        nodeId: node.id,
+        front: "",
+        back: "",
+        deck: DEFAULT_DECK,
+        tags: [],
+        ankiId,
+      });
       continue;
     }
 
-    // Green node — must have a QA separator
+    // Matching node — must have a QA separator
     const clean = stripMeta(rawText);
     const split = splitQA(clean);
     if (!split) {

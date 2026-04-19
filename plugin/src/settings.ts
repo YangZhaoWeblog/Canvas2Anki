@@ -2,16 +2,18 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type Canvas2AnkiPlugin from "./main";
 import type { PluginSettings } from "./models";
 
+/** Canvas preset color index → Obsidian CSS variable name */
+const COLOR_CSS_VARS: Record<string, string> = {
+  "1": "--color-red",
+  "2": "--color-orange",
+  "3": "--color-yellow",
+  "4": "--color-green",
+  "5": "--color-cyan",
+  "6": "--color-purple",
+};
+
 export function isConfigured(s: PluginSettings | null): s is PluginSettings {
-  return (
-    s !== null &&
-    s.modelName !== "" &&
-    s.frontField !== "" &&
-    s.backField !== "" &&
-    s.colorR >= 0 && s.colorR <= 255 &&
-    s.colorG >= 0 && s.colorG <= 255 &&
-    s.colorB >= 0 && s.colorB <= 255
-  );
+  return s !== null && s.exportColor >= "1" && s.exportColor <= "6";
 }
 
 export class Canvas2AnkiSettingTab extends PluginSettingTab {
@@ -27,71 +29,58 @@ export class Canvas2AnkiSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.createEl("h2", { text: "Canvas2Anki Settings" });
 
-    const s = this.plugin.settings;
+    // ── Color picker: 6 clickable swatches ──
+    const colorSetting = new Setting(containerEl)
+      .setName("导出颜色")
+      .setDesc("Canvas 中哪个预设颜色代表要导出的卡片");
 
-    containerEl.createEl("h3", { text: "导出颜色 (RGB)" });
+    const swatchContainer = colorSetting.controlEl.createDiv({
+      cls: "canvas2anki-swatch-row",
+    });
+    swatchContainer.style.display = "flex";
+    swatchContainer.style.gap = "6px";
 
+    const swatches: HTMLElement[] = [];
+
+    for (const [idx, cssVar] of Object.entries(COLOR_CSS_VARS)) {
+      const swatch = swatchContainer.createDiv({ cls: "canvas2anki-swatch" });
+      const resolved = getComputedStyle(document.body).getPropertyValue(cssVar).trim();
+      swatch.style.backgroundColor = resolved || cssVar;
+      swatch.style.width = "28px";
+      swatch.style.height = "28px";
+      swatch.style.borderRadius = "6px";
+      swatch.style.cursor = "pointer";
+      swatch.style.border = "2px solid transparent";
+      swatch.style.transition = "border-color 0.15s";
+
+      if (idx === this.plugin.settings.exportColor) {
+        swatch.style.border = "2px solid var(--text-normal)";
+      }
+
+      swatch.addEventListener("click", async () => {
+        this.plugin.settings.exportColor = idx;
+        await this.plugin.saveSettings();
+        // Update highlight
+        for (const s of swatches) {
+          s.style.border = "2px solid transparent";
+        }
+        swatch.style.border = "2px solid var(--text-normal)";
+      });
+
+      swatches.push(swatch);
+    }
+
+    // ── Delete keyword ──
     new Setting(containerEl)
-      .setName("R")
+      .setName("删除关键词")
+      .setDesc("节点文本中包含此关键词时，导出将删除对应 Anki 卡片")
       .addText((t) =>
-        t.setValue(String(s.colorR)).onChange(async (v) => {
-          s.colorR = clampColor(v);
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("G")
-      .addText((t) =>
-        t.setValue(String(s.colorG)).onChange(async (v) => {
-          s.colorG = clampColor(v);
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("B")
-      .addText((t) =>
-        t.setValue(String(s.colorB)).onChange(async (v) => {
-          s.colorB = clampColor(v);
-          await this.plugin.saveSettings();
-        })
-      );
-
-    containerEl.createEl("h3", { text: "Anki 模板" });
-
-    new Setting(containerEl)
-      .setName("模板名")
-      .setDesc("Anki 中的笔记类型名称")
-      .addText((t) =>
-        t.setValue(s.modelName).onChange(async (v) => {
-          s.modelName = v.trim();
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("正面字段")
-      .addText((t) =>
-        t.setValue(s.frontField).onChange(async (v) => {
-          s.frontField = v.trim();
-          await this.plugin.saveSettings();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("背面字段")
-      .addText((t) =>
-        t.setValue(s.backField).onChange(async (v) => {
-          s.backField = v.trim();
-          await this.plugin.saveSettings();
-        })
+        t
+          .setValue(this.plugin.settings.deleteKeyword)
+          .onChange(async (v) => {
+            this.plugin.settings.deleteKeyword = v.trim();
+            await this.plugin.saveSettings();
+          })
       );
   }
-}
-
-function clampColor(v: string): number {
-  const n = parseInt(v, 10);
-  if (isNaN(n)) return 0;
-  return Math.max(0, Math.min(255, n));
 }

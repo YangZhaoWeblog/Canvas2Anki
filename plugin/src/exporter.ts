@@ -1,11 +1,8 @@
 import { parseCanvas } from "./parser";
 import { mdToAnkiHtml } from "./converter";
 import type { AnkiClient } from "./anki-client";
+import { MODEL_NAME, FRONT_FIELD, BACK_FIELD } from "./models";
 import type { ExportStats, PluginSettings } from "./models";
-
-function rgbToHex(r: number, g: number, b: number): string {
-  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
-}
 
 export interface ExportParams {
   canvasJson: string;
@@ -26,8 +23,7 @@ export interface ExportResult {
 
 export async function exportCanvas(params: ExportParams): Promise<ExportResult> {
   const { canvasJson, client, settings, vaultName, canvasPath } = params;
-  const color = rgbToHex(settings.colorR, settings.colorG, settings.colorB);
-  const { cards, warnings, deletions } = parseCanvas(canvasJson, color);
+  const { cards, warnings, deletions } = parseCanvas(canvasJson, settings.exportColor, settings.deleteKeyword);
 
   const stats: ExportStats = { added: 0, updated: 0, deleted: 0, skipped: warnings.length };
   const idWriteback: Record<string, number> = {};
@@ -49,8 +45,8 @@ export async function exportCanvas(params: ExportParams): Promise<ExportResult> 
     backHtml += `<br><a href="obsidian://open?vault=${encodedVault}&file=${encodedPath}">📎 Canvas</a>`;
 
     const fields: Record<string, string> = {
-      [settings.frontField]: frontHtml,
-      [settings.backField]: backHtml,
+      [FRONT_FIELD]: frontHtml,
+      [BACK_FIELD]: backHtml,
     };
 
     if (card.ankiId) {
@@ -64,7 +60,7 @@ export async function exportCanvas(params: ExportParams): Promise<ExportResult> 
       }
     } else {
       try {
-        const noteId = await client.addNote(card.deck, settings.modelName, fields, card.tags);
+        const noteId = await client.addNote(card.deck, MODEL_NAME, fields, card.tags);
         idWriteback[card.nodeId] = noteId;
         stats.added++;
       } catch (e: any) {
@@ -76,9 +72,14 @@ export async function exportCanvas(params: ExportParams): Promise<ExportResult> 
 
   const deletedNodeIds: string[] = [];
   for (const d of deletions) {
-    await client.deleteNotes([d.ankiId!]);
-    deletedNodeIds.push(d.nodeId);
-    stats.deleted++;
+    try {
+      await client.deleteNotes([d.ankiId!]);
+      deletedNodeIds.push(d.nodeId);
+      stats.deleted++;
+    } catch (e: any) {
+      warnings.push(`WARN: 删除失败 (ankiId=${d.ankiId}) — ${e.message}`);
+      stats.skipped++;
+    }
   }
 
   return { stats, warnings, idWriteback, deletedNodeIds };
