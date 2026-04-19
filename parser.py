@@ -91,11 +91,8 @@ def _split_qa(text: str) -> tuple[str | None, str | None]:
     lines = text.split("\n")
     for i, line in enumerate(lines):
         if line.strip() == "---":
-            # 前一行以 | 开头则是表格，跳过
+            # 前一行以 | 开头则是表格内的分隔线，跳过
             if i > 0 and lines[i - 1].strip().startswith("|"):
-                continue
-            # 后一行以 | 开头则是表格，跳过
-            if i + 1 < len(lines) and lines[i + 1].strip().startswith("|"):
                 continue
             return "\n".join(lines[:i]), "\n".join(lines[i + 1:])
     return None, None

@@ -50,7 +50,15 @@ class AnkiClient:
             "modelName": model,
             "fields": fields,
             "tags": tags or [],
-            "options": {"allowDuplicate": True},
+            "options": {
+                "allowDuplicate": True,
+                "duplicateScope": "deck",
+                "duplicateScopeOptions": {
+                    "deckName": deck,
+                    "checkChildren": False,
+                    "checkAllModels": False,
+                },
+            },
         }
         return self._request("addNote", note=note)
 
