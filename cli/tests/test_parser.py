@@ -101,3 +101,67 @@ def test_parse_deletion_candidates():
     assert len(deletions) == 1
     assert deletions[0].anki_id == 1776014384625
 
+
+def test_parse_question_ends_with_table_row():
+    """问题末尾是表格行 → 紧随其后的 --- 是真正的 Q/A 分隔符，不应被跳过。
+
+    场景：
+        | 列1 | 列2 |
+        | --- | --- |
+        | val | val |
+        ---            ← 这才是 Q/A 分隔符，但上一行以 | 开头，当前逻辑会跳过它
+        答案在这里
+    """
+    canvas_data = {
+        "nodes": [{
+            "id": "n1",
+            "x": 0, "y": 0, "width": 100, "height": 50,
+            "type": "text",
+            "color": "4",
+            "text": "对比表\n\n| 列1 | 列2 |\n| --- | --- |\n| a | b |\n---\n答案在这里",
+        }],
+        "edges": [],
+    }
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".canvas", delete=False) as f:
+        json.dump(canvas_data, f)
+        f.flush()
+        cards, warnings, _ = parse_canvas(Path(f.name))
+
+    assert len(cards) == 1, f"应该产生 1 张卡，实际 {len(cards)} 张，warnings={warnings}"
+    assert cards[0].back.strip() == "答案在这里"
+
+
+def test_parse_code_fence_with_triple_dash():
+    """问题部分的代码块内含 ---，不应触发 Q/A 分割。
+
+    场景：
+        ```yaml
+        doc1: a
+        ---           ← 在代码围栏内，应跳过
+        doc2: b
+        ```
+        ---           ← 这才是 Q/A 分隔符
+        答案在这里
+    """
+    text = "YAML 多文档\n\n```yaml\ndoc1: a\n---\ndoc2: b\n```\n---\n答案在这里"
+    canvas_data = {
+        "nodes": [{
+            "id": "n1",
+            "x": 0, "y": 0, "width": 100, "height": 50,
+            "type": "text",
+            "color": "4",
+            "text": text,
+        }],
+        "edges": [],
+    }
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".canvas", delete=False) as f:
+        json.dump(canvas_data, f)
+        f.flush()
+        cards, warnings, _ = parse_canvas(Path(f.name))
+
+    assert len(cards) == 1, f"应该产生 1 张卡，warnings={warnings}"
+    # 代码块内的 --- 不应导致问题被截断
+    assert "```yaml" in cards[0].front
+    assert "doc2: b" in cards[0].front
+    assert cards[0].back.strip() == "答案在这里"
+

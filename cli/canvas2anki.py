@@ -57,8 +57,13 @@ def process_canvas(
 
         if card.anki_id:
             if not dry_run:
-                client.update_note_fields(card.anki_id, fields)
-                id_writeback[card.node_id] = card.anki_id
+                try:
+                    client.update_note_fields(card.anki_id, fields)
+                    id_writeback[card.node_id] = card.anki_id
+                except Exception as e:
+                    print(f'  ├─ WARN: "{card.front[:30]}" 更新失败 — {e}')
+                    stats["skipped"] += 1
+                    continue
             stats["updated"] += 1
             print(f'  ├─ 更新: "{card.front[:30]}" [ID: {card.anki_id}]')
         else:
@@ -90,7 +95,13 @@ def process_canvas(
 
 def _upload_media(text: str, vault_root: Path, client: AnkiClient) -> None:
     for match in re.finditer(r"!\[\[(.*?)\]\]", text):
-        filepath = vault_root / match.group(1)
+        ref = match.group(1)
+        filepath = vault_root / ref
+        if not filepath.exists():
+            # Obsidian wikilink 可能省略路径前缀，在 vault 内搜索文件名
+            name = ref.rsplit("/", 1)[-1]
+            found = list(vault_root.rglob(name))
+            filepath = found[0] if found else filepath
         if filepath.exists():
             client.store_media_file(filepath.name, filepath.read_bytes())
         else:

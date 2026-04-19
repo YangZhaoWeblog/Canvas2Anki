@@ -87,13 +87,18 @@ def parse_canvas(canvas_path: Path) -> tuple[list[Card], list[str], list[Card]]:
 
 
 def _split_qa(text: str) -> tuple[str | None, str | None]:
-    """在第一个裸 --- 处分割文本，返回 (正面, 背面) 或 (None, None)。"""
+    """在第一个裸 --- 处分割文本，返回 (正面, 背面) 或 (None, None)。
+
+    只匹配独占一行且 strip 后恰好为 "---" 的行。
+    代码围栏（```）内的 --- 会被跳过。
+    表格分隔行如 "| --- | --- |" strip 后不等于 "---"，天然不会命中。
+    """
     lines = text.split("\n")
+    in_fence = False
     for i, line in enumerate(lines):
-        if line.strip() == "---":
-            # 前一行以 | 开头则是表格内的分隔线，跳过
-            if i > 0 and lines[i - 1].strip().startswith("|"):
-                continue
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+        if not in_fence and line.strip() == "---":
             return "\n".join(lines[:i]), "\n".join(lines[i + 1:])
     return None, None
 
