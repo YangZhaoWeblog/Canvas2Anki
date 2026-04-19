@@ -63,8 +63,13 @@ def process_canvas(
             print(f'  ├─ 更新: "{card.front[:30]}" [ID: {card.anki_id}]')
         else:
             if not dry_run:
-                note_id = client.add_note(card.deck, DEFAULT_MODEL, fields, card.tags)
-                id_writeback[card.node_id] = note_id
+                try:
+                    note_id = client.add_note(card.deck, DEFAULT_MODEL, fields, card.tags)
+                    id_writeback[card.node_id] = note_id
+                except Exception as e:
+                    print(f'  ├─ WARN: "{card.front[:30]}" 跳过 — {e}')
+                    stats["skipped"] += 1
+                    continue
             stats["added"] += 1
             print(f'  ├─ 新建: "{card.front[:30]}" → {card.deck}')
 
