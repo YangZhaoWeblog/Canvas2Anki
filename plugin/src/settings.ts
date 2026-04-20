@@ -70,15 +70,15 @@ export class Canvas2AnkiSettingTab extends PluginSettingTab {
       swatches.push(swatch);
     }
 
-    // ── Delete keyword ──
+    // ── Delete group label ──
     new Setting(containerEl)
-      .setName("删除关键词")
-      .setDesc("节点文本中包含此关键词时，导出将删除对应 Anki 卡片")
+      .setName("删除组名称")
+      .setDesc("label 为此名称的 Canvas Group 内的节点，导出时将删除对应 Anki 卡片")
       .addText((t) =>
         t
-          .setValue(this.plugin.settings.deleteKeyword)
+          .setValue(this.plugin.settings.deleteGroupLabel)
           .onChange(async (v) => {
-            this.plugin.settings.deleteKeyword = v.trim();
+            this.plugin.settings.deleteGroupLabel = v.trim() || "DELETE";
             await this.plugin.saveSettings();
           })
       );
