@@ -23,7 +23,7 @@ export interface ExportResult {
 
 export async function exportCanvas(params: ExportParams): Promise<ExportResult> {
   const { canvasJson, client, settings, vaultName, canvasPath } = params;
-  const { cards, warnings, deletions } = parseCanvas(canvasJson, settings.exportColor, settings.deleteKeyword);
+  const { cards, warnings, deletions } = parseCanvas(canvasJson, settings.exportColor, settings.deleteGroupLabel);
 
   const stats: ExportStats = { added: 0, updated: 0, deleted: 0, skipped: warnings.length };
   const idWriteback: Record<string, number> = {};

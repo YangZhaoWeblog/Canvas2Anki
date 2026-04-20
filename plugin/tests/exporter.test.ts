@@ -4,7 +4,7 @@ import type { PluginSettings } from "../src/models";
 
 const SETTINGS: PluginSettings = {
   exportColor: "4",
-  deleteKeyword: "DELETE",
+  deleteGroupLabel: "DELETE",
 };
 
 function makeCanvas(nodes: any[], edges: any[] = []) {
@@ -82,14 +82,16 @@ describe("exportCanvas", () => {
     expect(result.idWriteback).not.toHaveProperty("n1");
   });
 
-  it("deletes card with matching color + ankiId + DELETE keyword", async () => {
-    const json = makeCanvas([
-      {
-        id: "n1", type: "text", color: "4",
-        text: 'DELETE\nQ?\n---\nA\n<!--card:{"id":77777}-->',
-        x: 0, y: 0, width: 100, height: 50,
-      },
-    ]);
+  it("deletes card in DELETE group with ankiId", async () => {
+    const json = JSON.stringify({
+      nodes: [
+        { id: "dg", type: "group", label: "DELETE", x: -200, y: -200, width: 1000, height: 1000 },
+        { id: "n1", type: "text", color: "4",
+          text: 'Q?\n---\nA\n<!--card:{"id":77777}-->',
+          x: 0, y: 0, width: 100, height: 50 },
+      ],
+      edges: [],
+    });
     const client = makeMockClient();
     const result = await exportCanvas(makeParams(json, client));
 
@@ -98,34 +100,37 @@ describe("exportCanvas", () => {
     expect(result.deletedNodeIds).toContain("n1");
   });
 
-  it("does NOT delete non-matching color node even with ankiId", async () => {
-    const json = makeCanvas([
-      {
-        id: "n1", type: "text",
-        text: 'Q?\n---\nA\n<!--card:{"id":88888}-->',
-        x: 0, y: 0, width: 100, height: 50,
-      },
-    ]);
+  it("skips node in DELETE group with no ankiId, counts as warning", async () => {
+    const json = JSON.stringify({
+      nodes: [
+        { id: "dg", type: "group", label: "DELETE", x: -200, y: -200, width: 1000, height: 1000 },
+        { id: "n1", type: "text", color: "4",
+          text: "Q?\n---\nA",
+          x: 0, y: 0, width: 100, height: 50 },
+      ],
+      edges: [],
+    });
     const client = makeMockClient();
     const result = await exportCanvas(makeParams(json, client));
 
     expect(result.stats.deleted).toBe(0);
+    expect(result.stats.skipped).toBe(1);
     expect(client.deleteNotes).not.toHaveBeenCalled();
   });
 
   it("handles deleteNotes failure gracefully, continues to next", async () => {
-    const json = makeCanvas([
-      {
-        id: "n1", type: "text", color: "4",
-        text: 'DELETE\nQ1?\n---\nA1\n<!--card:{"id":11111}-->',
-        x: 0, y: 0, width: 100, height: 50,
-      },
-      {
-        id: "n2", type: "text", color: "4",
-        text: 'DELETE\nQ2?\n---\nA2\n<!--card:{"id":22222}-->',
-        x: 0, y: 100, width: 100, height: 50,
-      },
-    ]);
+    const json = JSON.stringify({
+      nodes: [
+        { id: "dg", type: "group", label: "DELETE", x: -200, y: -200, width: 1000, height: 1000 },
+        { id: "n1", type: "text", color: "4",
+          text: 'Q1?\n---\nA1\n<!--card:{"id":11111}-->',
+          x: 0, y: 0, width: 100, height: 50 },
+        { id: "n2", type: "text", color: "4",
+          text: 'Q2?\n---\nA2\n<!--card:{"id":22222}-->',
+          x: 0, y: 100, width: 100, height: 50 },
+      ],
+      edges: [],
+    });
     const client = makeMockClient();
     client.deleteNotes
       .mockRejectedValueOnce(new Error("not found"))
