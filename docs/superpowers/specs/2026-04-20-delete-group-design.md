@@ -19,7 +19,7 @@
 
 ### 唯一删除机制：DELETE Group
 
-废弃手写 DELETE 关键词（保留向后兼容），以 **DELETE Group** 作为唯一删除入口。
+移除手写 DELETE 关键词机制，以 **DELETE Group** 作为唯一删除入口。
 
 **用户心智模型**：DELETE group 是卡片的终点站。节点在里面 = 标记退休。
 
@@ -76,19 +76,11 @@ DELETE group 下此风险已消除：触发删除的是 group 成员资格，颜
 
 ---
 
-## 向后兼容
-
-手写 DELETE 关键词机制保留，不强制迁移。但新用户文档以 DELETE group 为主路径。
-
-长期可考虑：检测到手写 DELETE 时，提示用户迁移到 DELETE group 方式。
-
----
-
 ## 需要变更的组件
 
 | 组件 | 变更内容 |
 |------|----------|
-| `settings.ts` | 新增 `deleteGroupLabel` 配置项，默认 `"DELETE"` |
-| `parser.ts` | 解析 group 时识别 DELETE group；节点归属逻辑：DELETE group 优先于 Deck group |
+| `settings.ts` | 移除 `deleteKeyword` 配置项；新增 `deleteGroupLabel` 配置项，默认 `"DELETE"` |
+| `parser.ts` | 移除 deleteKeyword 逻辑；解析 group 时识别 DELETE group；节点归属逻辑：DELETE group 优先于 Deck group |
 | `exporter.ts` | 删除分支：检查节点是否在 DELETE group（不检查颜色）；有 ankiId → 删除；无 ankiId → 警告跳过 |
 | `models.ts` | Card/Deletion 模型增加 `inDeleteGroup` 字段 |

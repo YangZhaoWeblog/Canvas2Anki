@@ -4,6 +4,9 @@ import {
   ANKI_CONNECT_VERSION,
   CARD_META_RE,
   DEFAULT_DECK,
+  parseMeta,
+  stripMeta,
+  writeMeta,
   type Card,
 } from "../src/models";
 
@@ -37,5 +40,45 @@ describe("models", () => {
     };
     expect(card.nodeId).toBe("abc");
     expect(card.ankiId).toBeNull();
+  });
+});
+
+describe("parseMeta", () => {
+  it("parses existing metadata", () => {
+    const text = 'hello\n<!--card:{"id":123,"anc":"abc"}-->';
+    expect(parseMeta(text)).toEqual({ id: 123, anc: "abc" });
+  });
+
+  it("returns {} when no metadata", () => {
+    expect(parseMeta("plain text")).toEqual({});
+  });
+});
+
+describe("stripMeta", () => {
+  it("removes metadata comment", () => {
+    const text = 'hello\n<!--card:{"id":123}-->';
+    expect(stripMeta(text)).toBe("hello");
+  });
+});
+
+describe("writeMeta", () => {
+  it("merges new fields into existing metadata", () => {
+    const text = 'hello\n<!--card:{"anc":"abc"}-->';
+    const result = writeMeta(text, { id: 999 });
+    expect(result).toContain("hello");
+    expect(result).toContain('"anc":"abc"');
+    expect(result).toContain('"id":999');
+  });
+
+  it("overwrites existing field", () => {
+    const text = 'hello\n<!--card:{"id":111}-->';
+    const result = writeMeta(text, { id: 222 });
+    expect(result).toContain('"id":222');
+    expect(result).not.toContain('"id":111');
+  });
+
+  it("works on text with no existing metadata", () => {
+    const result = writeMeta("hello", { id: 1 });
+    expect(result).toBe('hello\n<!--card:{"id":1}-->');
   });
 });
