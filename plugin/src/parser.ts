@@ -123,7 +123,7 @@ export function findDeck(
 
 // ── main export ────────────────────────────────────────────────────────────
 
-export function parseCanvas(json: string, exportColor: string, deleteKeyword: string): ParseResult {
+export function parseCanvas(json: string, exportColor: string, deleteGroupLabel: string): ParseResult {
   const data: CanvasData = JSON.parse(json);
   const nodes: RawNode[] = data.nodes ?? [];
   const edges: RawEdge[] = data.edges ?? [];
@@ -135,6 +135,20 @@ export function parseCanvas(json: string, exportColor: string, deleteKeyword: st
   // Build lookup maps
   const nodeById = new Map<string, RawNode>(nodes.map((n) => [n.id, n]));
   const groups = nodes.filter((n) => n.type === "group");
+
+  // Identify DELETE group (by label match)
+  const deleteGroups = groups.filter(
+    (g) => g.label?.trim() === deleteGroupLabel.trim()
+  );
+
+  /** Returns true if node center is inside any DELETE group */
+  function isInDeleteGroup(node: RawNode): boolean {
+    const cx = node.x + node.width / 2;
+    const cy = node.y + node.height / 2;
+    return deleteGroups.some(
+      (g) => cx >= g.x && cx <= g.x + g.width && cy >= g.y && cy <= g.y + g.height
+    );
+  }
 
   // Outgoing edges per node
   const edgesFrom = new Map<string, string[]>();
@@ -148,23 +162,27 @@ export function parseCanvas(json: string, exportColor: string, deleteKeyword: st
 
     const rawText = node.text;
     const ankiId = extractMeta(rawText);
-    const isMatch = node.color === exportColor;
 
-    // Non-matching color: always skip, never delete
-    if (!isMatch) continue;
-
-    // Deletion: matching color + has ankiId + text contains delete keyword
-    if (ankiId !== null && deleteKeyword && stripMeta(rawText).includes(deleteKeyword)) {
-      deletions.push({
-        nodeId: node.id,
-        front: "",
-        back: "",
-        deck: DEFAULT_DECK,
-        tags: [],
-        ankiId,
-      });
+    // DELETE group branch: color-independent, only checks ankiId
+    if (isInDeleteGroup(node)) {
+      if (ankiId !== null) {
+        deletions.push({
+          nodeId: node.id,
+          front: "",
+          back: "",
+          deck: DEFAULT_DECK,
+          tags: [],
+          ankiId,
+        });
+      } else {
+        warnings.push(`Node ${node.id}: in DELETE group but has no ankiId — skipped`);
+      }
       continue;
     }
+
+    // Normal export branch: color must match
+    const isMatch = node.color === exportColor;
+    if (!isMatch) continue;
 
     // Matching node — must have a QA separator
     const clean = stripMeta(rawText);
