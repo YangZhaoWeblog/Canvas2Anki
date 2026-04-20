@@ -1,13 +1,13 @@
 import { Notice, Plugin, TFile } from "obsidian";
 import { AnkiClient } from "./anki-client";
 import { exportCanvas } from "./exporter";
-import { CARD_META_GLOBAL_RE } from "./models";
+import { writeMeta, stripMeta } from "./models";
 import type { PluginSettings } from "./models";
 import { Canvas2AnkiSettingTab, isConfigured } from "./settings";
 
 const DEFAULT_SETTINGS: PluginSettings = {
   exportColor: "4",
-  deleteKeyword: "DELETE",
+  deleteGroupLabel: "DELETE",
 };
 
 export default class Canvas2AnkiPlugin extends Plugin {
@@ -113,16 +113,10 @@ export default class Canvas2AnkiPlugin extends Plugin {
 
     for (const node of data.nodes) {
       if (node.id in idWriteback) {
-        const text = (node.text ?? "").replace(CARD_META_GLOBAL_RE, "").trimEnd();
-        const meta = JSON.stringify({ id: idWriteback[node.id] });
-        node.text = text + `\n<!--card:${meta}-->`;
+        node.text = writeMeta(node.text ?? "", { id: idWriteback[node.id] });
       }
       if (deletedNodeIds.includes(node.id)) {
-        let text = (node.text ?? "").replace(CARD_META_GLOBAL_RE, "");
-        // Strip the delete keyword
-        const kw = this.settings.deleteKeyword;
-        if (kw) text = text.replace(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "");
-        node.text = text.replace(/\n{3,}/g, "\n\n").trim();
+        node.text = stripMeta(node.text ?? "").trim();
       }
     }
 
