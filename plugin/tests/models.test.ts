@@ -2,31 +2,16 @@ import { describe, it, expect } from "vitest";
 import {
   ANKI_CONNECT_URL,
   ANKI_CONNECT_VERSION,
-  CARD_META_RE,
   DEFAULT_DECK,
-  parseMeta,
-  stripMeta,
-  writeMeta,
   type Card,
 } from "../src/models";
+import { readAnkiMeta, writeAnkiMeta, stripAnkiMeta } from "../src/models";
 
 describe("models", () => {
   it("constants have correct values", () => {
     expect(ANKI_CONNECT_URL).toBe("http://127.0.0.1:8765");
     expect(ANKI_CONNECT_VERSION).toBe(6);
     expect(DEFAULT_DECK).toBe("Default");
-  });
-
-  it("CARD_META_RE extracts JSON from comment", () => {
-    const text = 'some text\n<!--card:{"id":123}-->';
-    const match = text.match(CARD_META_RE);
-    expect(match).not.toBeNull();
-    expect(JSON.parse(match![1])).toEqual({ id: 123 });
-  });
-
-  it("CARD_META_RE does not match plain comments", () => {
-    const text = "<!-- normal comment -->";
-    expect(text.match(CARD_META_RE)).toBeNull();
   });
 
   it("Card interface accepts valid object", () => {
@@ -43,42 +28,44 @@ describe("models", () => {
   });
 });
 
-describe("parseMeta", () => {
-  it("parses existing metadata", () => {
-    const text = 'hello\n<!--card:{"id":123,"anc":"abc"}-->';
-    expect(parseMeta(text)).toEqual({ id: 123, anc: "abc" });
+describe("readAnkiMeta", () => {
+  it("returns meta when canvas2anki field exists", () => {
+    expect(readAnkiMeta({ canvas2anki: { id: 123 } })).toEqual({ id: 123 });
   });
-
-  it("returns {} when no metadata", () => {
-    expect(parseMeta("plain text")).toEqual({});
+  it("returns null when no canvas2anki field", () => {
+    expect(readAnkiMeta({})).toBeNull();
   });
-});
-
-describe("stripMeta", () => {
-  it("removes metadata comment", () => {
-    const text = 'hello\n<!--card:{"id":123}-->';
-    expect(stripMeta(text)).toBe("hello");
+  it("returns null when id is wrong type", () => {
+    expect(readAnkiMeta({ canvas2anki: { id: "string" } })).toBeNull();
+  });
+  it("returns null when canvas2anki is empty object", () => {
+    expect(readAnkiMeta({ canvas2anki: {} })).toBeNull();
   });
 });
 
-describe("writeMeta", () => {
-  it("merges new fields into existing metadata", () => {
-    const text = 'hello\n<!--card:{"anc":"abc"}-->';
-    const result = writeMeta(text, { id: 999 });
-    expect(result).toContain("hello");
-    expect(result).toContain('"anc":"abc"');
-    expect(result).toContain('"id":999');
+describe("writeAnkiMeta", () => {
+  it("adds canvas2anki to empty node", () => {
+    const result = writeAnkiMeta({}, { id: 123 });
+    expect(result).toEqual({ canvas2anki: { id: 123 } });
   });
-
-  it("overwrites existing field", () => {
-    const text = 'hello\n<!--card:{"id":111}-->';
-    const result = writeMeta(text, { id: 222 });
-    expect(result).toContain('"id":222');
-    expect(result).not.toContain('"id":111');
+  it("preserves existing fields", () => {
+    const result = writeAnkiMeta({ text: "hello", color: "4" }, { id: 456 });
+    expect(result).toEqual({ text: "hello", color: "4", canvas2anki: { id: 456 } });
   });
+  it("overwrites existing canvas2anki", () => {
+    const result = writeAnkiMeta({ canvas2anki: { id: 111 } }, { id: 222 });
+    expect(result.canvas2anki).toEqual({ id: 222 });
+  });
+});
 
-  it("works on text with no existing metadata", () => {
-    const result = writeMeta("hello", { id: 1 });
-    expect(result).toBe('hello\n<!--card:{"id":1}-->');
+describe("stripAnkiMeta", () => {
+  it("removes canvas2anki field", () => {
+    const result = stripAnkiMeta({ text: "hello", canvas2anki: { id: 123 } });
+    expect(result).toEqual({ text: "hello" });
+    expect("canvas2anki" in result).toBe(false);
+  });
+  it("returns same shape when no canvas2anki", () => {
+    const result = stripAnkiMeta({ text: "hello" });
+    expect(result).toEqual({ text: "hello" });
   });
 });

@@ -40,9 +40,7 @@ export async function exportCanvas(params: ExportParams): Promise<ExportResult> 
     const frontHtml = mdToAnkiHtml(card.front, vaultName);
     let backHtml = mdToAnkiHtml(card.back, vaultName);
 
-    const encodedVault = encodeURIComponent(vaultName);
-    const encodedPath = encodeURIComponent(canvasPath);
-    backHtml += `<br><a href="obsidian://open?vault=${encodedVault}&file=${encodedPath}">📎 Canvas</a>`;
+    backHtml += `<br><a href="obsidian://open?vault=${vaultName}&file=${canvasPath}">📎 Canvas</a>`;
 
     const fields: Record<string, string> = {
       [FRONT_FIELD]: frontHtml,

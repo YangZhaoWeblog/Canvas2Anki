@@ -1,8 +1,6 @@
 export const ANKI_CONNECT_URL = "http://127.0.0.1:8765";
 export const ANKI_CONNECT_VERSION = 6;
 export const DEFAULT_DECK = "Default";
-export const CARD_META_RE = /<!--card:(.*?)-->/;
-export const CARD_META_GLOBAL_RE = /<!--card:.*?-->/g;
 
 export const MODEL_NAME = "问答题";
 export const FRONT_FIELD = "正面";
@@ -24,32 +22,28 @@ export interface ExportStats {
   skipped: number;
 }
 
-/**
- * Parse existing <!--card:{JSON}--> from text.
- * Returns the parsed object, or {} if none found.
- */
-export function parseMeta(text: string): Record<string, unknown> {
-  const m = CARD_META_RE.exec(text);
-  if (!m) return {};
-  try { return JSON.parse(m[1]); } catch { return {}; }
+export interface Canvas2AnkiMeta {
+  id: number;
 }
 
-/**
- * Strip all <!--card:...--> from text, return trimmed result.
- */
-export function stripMeta(text: string): string {
-  return text.replace(CARD_META_GLOBAL_RE, "").trimEnd();
+export interface RawNode {
+  canvas2anki?: Canvas2AnkiMeta;
+  [key: string]: unknown;
 }
 
-/**
- * Merge new fields into existing metadata and append to text.
- * Preserves all existing fields (e.g. anc) not present in newFields.
- */
-export function writeMeta(text: string, newFields: Record<string, unknown>): string {
-  const existing = parseMeta(text);
-  const merged = { ...existing, ...newFields };
-  const clean = stripMeta(text);
-  return clean + `\n<!--card:${JSON.stringify(merged)}-->`;
+export function readAnkiMeta(node: RawNode): Canvas2AnkiMeta | null {
+  const meta = node.canvas2anki;
+  if (!meta || typeof meta.id !== "number") return null;
+  return meta;
+}
+
+export function writeAnkiMeta(node: RawNode, meta: Canvas2AnkiMeta): RawNode {
+  return { ...node, canvas2anki: meta };
+}
+
+export function stripAnkiMeta(node: RawNode): RawNode {
+  const { canvas2anki: _, ...rest } = node;
+  return rest;
 }
 
 export interface PluginSettings {

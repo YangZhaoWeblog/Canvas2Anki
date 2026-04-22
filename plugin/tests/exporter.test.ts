@@ -55,7 +55,8 @@ describe("exportCanvas", () => {
     const json = makeCanvas([
       {
         id: "n1", type: "text", color: "4",
-        text: 'Q?\n---\nA\n<!--card:{"id":12345}-->',
+        text: 'Q?\n---\nA',
+        canvas2anki: { id: 12345 },
         x: 0, y: 0, width: 100, height: 50,
       },
     ]);
@@ -87,7 +88,8 @@ describe("exportCanvas", () => {
       nodes: [
         { id: "dg", type: "group", label: "DELETE", x: -200, y: -200, width: 1000, height: 1000 },
         { id: "n1", type: "text", color: "4",
-          text: 'Q?\n---\nA\n<!--card:{"id":77777}-->',
+          text: 'Q?\n---\nA',
+          canvas2anki: { id: 77777 },
           x: 0, y: 0, width: 100, height: 50 },
       ],
       edges: [],
@@ -123,10 +125,12 @@ describe("exportCanvas", () => {
       nodes: [
         { id: "dg", type: "group", label: "DELETE", x: -200, y: -200, width: 1000, height: 1000 },
         { id: "n1", type: "text", color: "4",
-          text: 'Q1?\n---\nA1\n<!--card:{"id":11111}-->',
+          text: 'Q1?\n---\nA1',
+          canvas2anki: { id: 11111 },
           x: 0, y: 0, width: 100, height: 50 },
         { id: "n2", type: "text", color: "4",
-          text: 'Q2?\n---\nA2\n<!--card:{"id":22222}-->',
+          text: 'Q2?\n---\nA2',
+          canvas2anki: { id: 22222 },
           x: 0, y: 100, width: 100, height: 50 },
       ],
       edges: [],

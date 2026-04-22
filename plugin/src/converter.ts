@@ -42,8 +42,8 @@ export function mdToAnkiHtml(text: string, vault = "MyDigitalGarden"): string {
 
   // 7. Note wikilinks [[note]] → obsidian URI
   text = text.replace(/\[\[([^\]]+)\]\]/g, (_, note) => {
-    const uri = `obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(note)}`;
-    return `<a href="${uri}">${note}</a>`;
+    const uri = `obsidian://open?vault=${vault}&file=${note}`;
+    return protect(`<a href="${uri}">${note}</a>`);
   });
 
   // 8. Markdown → HTML

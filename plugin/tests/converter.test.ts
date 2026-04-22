@@ -45,7 +45,7 @@ describe("mdToAnkiHtml", () => {
 
   it("converts note wikilink to obsidian URI", () => {
     const html = mdToAnkiHtml("[[ECDSA]]", "MyVault");
-    expect(html).toContain("obsidian://open?vault=MyVault");
+    expect(html).toContain('href="obsidian://open?vault=MyVault');
     expect(html).toContain("ECDSA");
   });
 

@@ -8,8 +8,8 @@ function makeCanvas(nodes: any[], edges: any[] = []) {
   return JSON.stringify({ nodes, edges });
 }
 
-function textNode(id: string, text: string, color?: string, x = 0, y = 0) {
-  return { id, type: "text", text, color, x, y, width: 100, height: 50 };
+function textNode(id: string, text: string, color?: string, x = 0, y = 0, extra?: Record<string, unknown>) {
+  return { id, type: "text", text, color, x, y, width: 100, height: 50, ...extra };
 }
 
 function fileNode(id: string, file: string, x = 0, y = 0) {
@@ -44,9 +44,9 @@ describe("parseCanvas", () => {
     expect(warnings).toHaveLength(1);
   });
 
-  it("extracts existing anki ID from metadata", () => {
+  it("extracts existing anki ID from canvas2anki field", () => {
     const json = makeCanvas([
-      textNode("n1", 'Q?\n---\nA\n<!--card:{"id":12345}-->', COLOR),
+      textNode("n1", "Q?\n---\nA", COLOR, 0, 0, { canvas2anki: { id: 12345 } }),
     ]);
     const { cards } = parseCanvas(json, COLOR, DELETE_LABEL);
     expect(cards[0].ankiId).toBe(12345);
@@ -104,7 +104,7 @@ describe("parseCanvas", () => {
   it("routes node with ankiId in DELETE group to deletions (color-independent)", () => {
     const json = makeCanvas([
       groupNode("dg", "DELETE", -200, -200, 1000, 1000),
-      textNode("n1", 'Q?\n---\nA\n<!--card:{"id":99999}-->', COLOR, 0, 0),
+      textNode("n1", "Q?\n---\nA", COLOR, 0, 0, { canvas2anki: { id: 99999 } }),
     ]);
     const { deletions, cards } = parseCanvas(json, COLOR, DELETE_LABEL);
     expect(deletions).toHaveLength(1);
@@ -126,7 +126,7 @@ describe("parseCanvas", () => {
   it("routes non-matching color node in DELETE group to deletions if has ankiId", () => {
     const json = makeCanvas([
       groupNode("dg", "DELETE", -200, -200, 1000, 1000),
-      textNode("n1", 'Q?\n---\nA\n<!--card:{"id":55555}-->', "1", 0, 0),
+      textNode("n1", "Q?\n---\nA", "1", 0, 0, { canvas2anki: { id: 55555 } }),
     ]);
     const { deletions, cards } = parseCanvas(json, COLOR, DELETE_LABEL);
     expect(deletions).toHaveLength(1);
@@ -136,7 +136,7 @@ describe("parseCanvas", () => {
 
   it("does NOT route to deletions when node is NOT in DELETE group", () => {
     const json = makeCanvas([
-      textNode("n1", 'Q?\n---\nA\n<!--card:{"id":77777}-->', COLOR, 0, 0),
+      textNode("n1", "Q?\n---\nA", COLOR, 0, 0, { canvas2anki: { id: 77777 } }),
     ]);
     const { deletions, cards } = parseCanvas(json, COLOR, DELETE_LABEL);
     expect(deletions).toHaveLength(0);
@@ -146,7 +146,7 @@ describe("parseCanvas", () => {
   it("respects custom delete group label", () => {
     const json = makeCanvas([
       groupNode("dg", "垃圾桶", -200, -200, 1000, 1000),
-      textNode("n1", 'Q?\n---\nA\n<!--card:{"id":11111}-->', COLOR, 0, 0),
+      textNode("n1", "Q?\n---\nA", COLOR, 0, 0, { canvas2anki: { id: 11111 } }),
     ]);
     const { deletions } = parseCanvas(json, COLOR, "垃圾桶");
     expect(deletions).toHaveLength(1);

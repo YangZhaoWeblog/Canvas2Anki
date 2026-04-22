@@ -1,4 +1,4 @@
-import { Card, CARD_META_RE, CARD_META_GLOBAL_RE, DEFAULT_DECK } from "./models";
+import { Card, DEFAULT_DECK, readAnkiMeta } from "./models";
 
 // ── types for raw Canvas JSON ──────────────────────────────────────────────
 interface RawNode {
@@ -8,10 +8,12 @@ interface RawNode {
   file?: string;
   label?: string;
   color?: string;
+  canvas2anki?: { id: number };
   x: number;
   y: number;
   width: number;
   height: number;
+  [key: string]: unknown;
 }
 
 interface RawEdge {
@@ -55,22 +57,6 @@ export function splitQA(text: string): [string, string] | null {
   return null;
 }
 
-/** Parse `<!--card:{JSON}-->` and return the id field, or null. */
-export function extractMeta(text: string): number | null {
-  const m = CARD_META_RE.exec(text);
-  if (!m) return null;
-  try {
-    const obj = JSON.parse(m[1]);
-    return typeof obj.id === "number" ? obj.id : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Remove all `<!--card:...-->` occurrences from text. */
-export function stripMeta(text: string): string {
-  return text.replace(CARD_META_GLOBAL_RE, "").trim();
-}
 
 /** Extract #hashtags (ASCII + CJK), return tags array and cleaned text. */
 export function extractTags(text: string): { tags: string[]; text: string } {
@@ -91,7 +77,7 @@ export function appendTarget(node: RawNode): string {
     return isMedia ? `![[${node.file}]]` : `[[${node.file}]]`;
   }
   if (node.type === "text" && node.text) {
-    return stripMeta(node.text);
+    return node.text;
   }
   return "";
 }
@@ -161,7 +147,7 @@ export function parseCanvas(json: string, exportColor: string, deleteGroupLabel:
     if (node.type !== "text" || !node.text) continue;
 
     const rawText = node.text;
-    const ankiId = extractMeta(rawText);
+    const ankiId = readAnkiMeta(node)?.id ?? null;
 
     // DELETE group branch: color-independent, only checks ankiId
     if (isInDeleteGroup(node)) {
@@ -185,8 +171,7 @@ export function parseCanvas(json: string, exportColor: string, deleteGroupLabel:
     if (!isMatch) continue;
 
     // Matching node — must have a QA separator
-    const clean = stripMeta(rawText);
-    const split = splitQA(clean);
+    const split = splitQA(rawText);
     if (!split) {
       warnings.push(`Node ${node.id}: no Q/A separator found`);
       continue;

@@ -1,7 +1,6 @@
 import { Notice, Plugin, TFile } from "obsidian";
 import { AnkiClient } from "./anki-client";
 import { exportCanvas } from "./exporter";
-import { writeMeta, stripMeta } from "./models";
 import type { PluginSettings } from "./models";
 import { Canvas2AnkiSettingTab, isConfigured } from "./settings";
 
@@ -113,10 +112,10 @@ export default class Canvas2AnkiPlugin extends Plugin {
 
     for (const node of data.nodes) {
       if (node.id in idWriteback) {
-        node.text = writeMeta(node.text ?? "", { id: idWriteback[node.id] });
+        node.canvas2anki = { id: idWriteback[node.id] };
       }
       if (deletedNodeIds.includes(node.id)) {
-        node.text = stripMeta(node.text ?? "").trim();
+        delete node.canvas2anki;
       }
     }
 
